@@ -45,7 +45,11 @@ void DonneesGTFS::ajouterLignes(const std::string &p_nomFichier)
 
         fichierLigne.open(p_nomFichier);
 
-        if(fichierLigne.is_open()) {
+        if(!fichierLigne.is_open()){
+            throw std::logic_error("Erreur lors de l'ouverture du fichier.");
+            }
+
+        else{
             string ligne;
             char delimitateur = ',';
             vector<string> vecteurLigne;
@@ -64,7 +68,6 @@ void DonneesGTFS::ajouterLignes(const std::string &p_nomFichier)
                         enleverGuillement.erase(enleverGuillement.begin()+i);
                     }
                 }
-
 
                 //Je converti ma string pour un vector pour sortir les informations nécessaires.
                 //Pour sortir m_ligne.
@@ -92,20 +95,18 @@ void DonneesGTFS::ajouterLignes(const std::string &p_nomFichier)
                 categorie_ligne = Ligne::couleurToCategorie(couleur_ligne);
                 couleur_ligne = Ligne::categorieToString(categorie_ligne);
 
-                cout << intConverti << " " << numero_ligne << " " << description_route << " "<< couleur_ligne <<endl;
-                this->m_lignes.insert(uInt, (new Ligne(uInt, numero_ligne,description_route, categorie_ligne)));
+                //Création de l'objet Ligne.
+                Ligne *objetLigne = new Ligne(uInt, numero_ligne, description_route, categorie_ligne);
+                Ligne valeurObjet = *objetLigne;
 
 
+                //J'ajoute ce nouvel objet dans les maps m_ligne et m_ligne_par_numero.
+                m_lignes.insert(std::make_pair(uInt, valeurObjet));
+                m_lignes_par_numero.insert(std::make_pair(numero_ligne,valeurObjet));
             }
-            fichierLigne.close();
-        }
-        else {
-            throw std::logic_error("Erreur d'ouverture de fichier");
-            fichierLigne.close();
         }
     }
     catch (std::logic_error) {
-        cout << "Erreur avec le fichier" << endl;
     }
 }
 
