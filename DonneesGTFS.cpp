@@ -37,6 +37,74 @@ vector<string> DonneesGTFS::string_to_vector(const string &s, char delim)
 //! \throws logic_error si un problème survient avec la lecture du fichier
 void DonneesGTFS::ajouterLignes(const std::string &p_nomFichier)
 {
+
+    try {
+
+        //Ouverture du fichier.
+        fstream fichierLigne;
+
+        fichierLigne.open(p_nomFichier);
+
+        if(fichierLigne.is_open()) {
+            string ligne;
+            char delimitateur = ',';
+            vector<string> vecteurLigne;
+
+            //J'effectue une getline pour éviter de prendre l'entête du fichier.
+            getline(fichierLigne, ligne);
+
+            //Tant qu'il y a des éléments dans le fichier, on créé des lignes.
+            while(!fichierLigne.eof()) {
+                getline(fichierLigne, ligne);
+
+                //J'enlève toutes les guillemets de la string.
+                string enleverGuillement = ligne;
+                for(int i = 0; i < enleverGuillement.size(); i++){
+                    if(enleverGuillement[i] == '"'){
+                        enleverGuillement.erase(enleverGuillement.begin()+i);
+                    }
+                }
+
+
+                //Je converti ma string pour un vector pour sortir les informations nécessaires.
+                //Pour sortir m_ligne.
+                vecteurLigne = string_to_vector(enleverGuillement, delimitateur);
+                int intConverti;
+                string stringAConvertir;
+                stringAConvertir = vecteurLigne.at(0);
+                intConverti = stoul(stringAConvertir.c_str());
+
+                //Pour m_ligne_par_numero.
+                string numero_ligne;
+                numero_ligne = vecteurLigne.at(2);
+
+                //Pour m_description.
+                string description_route;
+                description_route = vecteurLigne.at(4);
+
+                //Pour m_categorie.
+                string couleur_ligne;
+                CategorieBus categorie_ligne;
+                couleur_ligne = vecteurLigne.at(7);
+
+                categorie_ligne = Ligne::couleurToCategorie(couleur_ligne);
+                couleur_ligne = Ligne::categorieToString(categorie_ligne);
+
+                cout << intConverti << " " << numero_ligne << " " << description_route << " "<< couleur_ligne <<endl;
+
+                m_lignes.insert(intConverti,new Ligne(intConverti, numero_ligne, description_route,categorie_ligne));
+
+            }
+            fichierLigne.close();
+        }
+        else {
+            throw std::logic_error("Erreur d'ouverture de fichier");
+            fichierLigne.close();
+        }
+    }
+    catch (std::logic_error) {
+        cout << "Erreur avec le fichier" << endl;
+    }
 }
 
 //! \brief ajoute les stations dans l'objet GTFS
