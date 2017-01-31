@@ -72,7 +72,9 @@ void DonneesGTFS::ajouterLignes(const std::string &p_nomFichier)
                 int intConverti;
                 string stringAConvertir;
                 stringAConvertir = vecteurLigne.at(0);
-                intConverti = stoul(stringAConvertir.c_str());
+                intConverti = atoi(stringAConvertir.c_str());
+                unsigned int uInt = (unsigned int)intConverti;
+
 
                 //Pour m_ligne_par_numero.
                 string numero_ligne;
@@ -91,8 +93,8 @@ void DonneesGTFS::ajouterLignes(const std::string &p_nomFichier)
                 couleur_ligne = Ligne::categorieToString(categorie_ligne);
 
                 cout << intConverti << " " << numero_ligne << " " << description_route << " "<< couleur_ligne <<endl;
+                this->m_lignes.insert(uInt, (new Ligne(uInt, numero_ligne,description_route, categorie_ligne)));
 
-                m_lignes.insert(intConverti,new Ligne(intConverti, numero_ligne, description_route,categorie_ligne));
 
             }
             fichierLigne.close();
