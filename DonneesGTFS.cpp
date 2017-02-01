@@ -39,14 +39,12 @@ void DonneesGTFS::ajouterLignes(const std::string &p_nomFichier)
 {
 
     try {
-
         //Ouverture du fichier.
         fstream fichierLigne;
-
         fichierLigne.open(p_nomFichier);
 
         if(!fichierLigne.is_open()){
-            throw std::logic_error("Erreur lors de l'ouverture du fichier.");
+            //throw std::logic_error("Erreur lors de l'ouverture du fichier.");
             }
 
         else{
@@ -78,7 +76,6 @@ void DonneesGTFS::ajouterLignes(const std::string &p_nomFichier)
                 intConverti = atoi(stringAConvertir.c_str());
                 unsigned int uInt = (unsigned int)intConverti;
 
-
                 //Pour m_ligne_par_numero.
                 string numero_ligne;
                 numero_ligne = vecteurLigne.at(2);
@@ -91,14 +88,11 @@ void DonneesGTFS::ajouterLignes(const std::string &p_nomFichier)
                 string couleur_ligne;
                 CategorieBus categorie_ligne;
                 couleur_ligne = vecteurLigne.at(7);
-
                 categorie_ligne = Ligne::couleurToCategorie(couleur_ligne);
-                couleur_ligne = Ligne::categorieToString(categorie_ligne);
 
                 //Création de l'objet Ligne.
                 Ligne *objetLigne = new Ligne(uInt, numero_ligne, description_route, categorie_ligne);
                 Ligne valeurObjet = *objetLigne;
-
 
                 //J'ajoute ce nouvel objet dans les maps m_ligne et m_ligne_par_numero.
                 m_lignes.insert(std::make_pair(uInt, valeurObjet));
