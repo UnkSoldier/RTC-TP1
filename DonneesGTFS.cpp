@@ -107,8 +107,72 @@ void DonneesGTFS::ajouterLignes(const std::string &p_nomFichier)
 //! \brief ajoute les stations dans l'objet GTFS
 //! \param[in] p_nomFichier: le nom du fichier contenant les station
 //! \throws logic_error si un problème survient avec la lecture du fichier
-void DonneesGTFS::ajouterStations(const std::string &p_nomFichier)
-{
+void DonneesGTFS::ajouterStations(const std::string &p_nomFichier) {
+    try {
+        fstream fichierStations;
+        fichierStations.open(p_nomFichier);
+
+        if (!fichierStations.is_open()) {
+            throw std::logic_error("Erreur d'ouverture du fichier.");
+        }
+
+        string ligne;
+        char delimitateur = ',';
+        vector<string> vecteurStation;
+
+        //Je prends la première ligne pour ne pas prendre l'entête.
+        getline(fichierStations, ligne);
+
+        //Tant qu'il y a des éléments dans le fichier, on créé des lignes.
+        while (!fichierStations.eof()) {
+            getline(fichierStations, ligne);
+
+            //J'enlève toutes les guillemets de la string.
+            string enleverGuillement = ligne;
+            for (int i = 0; i < enleverGuillement.size(); i++) {
+                if (enleverGuillement[i] == '"') {
+                    enleverGuillement.erase(enleverGuillement.begin() + i);
+                }
+            }
+
+            //Maintenant que les guillements sont enlevées, je peux aller chercher les informations pour créer les stations.
+            vecteurStation = string_to_vector(enleverGuillement, delimitateur);
+
+            //Pour stop_id
+            int idStationaConvertir;
+            string stringAConvertir;
+            stringAConvertir = vecteurStation.at(0);
+            idStationaConvertir = atoi(stringAConvertir.c_str());
+            unsigned int idStation = (unsigned int)idStationaConvertir;
+
+            //Pour aller chercher le nom de la station (m_nom)
+            string nomStation = vecteurStation.at(1);
+
+            //Pour avoir stop_desc (m_description)
+            string descStation = vecteurStation.at(2);
+
+            //pour les coordonnées géographiques.
+            string string_latitude = vecteurStation.at(3);
+            string string_longitude = vecteurStation.at(4);
+            double latitude = atof(string_latitude.c_str());
+            double longitude = atof(string_longitude.c_str());
+
+            //Création de l'object coordonnées afin de créer l'objet station.
+            Coordonnees *ptrCoordStation = new Coordonnees(latitude,longitude);
+            Coordonnees coordStation = *ptrCoordStation;
+
+            //Création de l'objet station.
+            Station *nouvelleStation = new Station(idStation, nomStation, descStation, coordStation);
+            Station stationaAjouter = *nouvelleStation;
+
+            //Insertion de la station dans le conteneur m_stations.
+            m_stations.insert(std::make_pair(idStation, stationaAjouter));
+
+        }
+    }
+    catch (std::logic_error) {
+        cout << "Erreur lors de l'ouverture du fichier!" << endl;
+    }
 }
 
 //! \brief ajoute les transferts dans l'objet GTFS
@@ -120,6 +184,7 @@ void DonneesGTFS::ajouterStations(const std::string &p_nomFichier)
 //! \throws logic_error si tous les arrets de la date et de l'intervalle n'ont pas été ajoutés
 void DonneesGTFS::ajouterTransferts(const std::string &p_nomFichier)
 {
+
 }
 
 
