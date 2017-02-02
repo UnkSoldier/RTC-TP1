@@ -58,6 +58,9 @@ void DonneesGTFS::ajouterLignes(const std::string &p_nomFichier)
             //Tant qu'il y a des éléments dans le fichier, on créé des lignes.
             while(!fichierLigne.eof()) {
                 getline(fichierLigne, ligne);
+                if(ligne.empty()){
+                    continue;
+                }
 
                 //J'enlève toutes les guillemets de la string.
                 string enleverGuillement = ligne;
@@ -128,16 +131,21 @@ void DonneesGTFS::ajouterStations(const std::string &p_nomFichier) {
         while (!fichierStations.eof()) {
             getline(fichierStations, ligne);
 
+            if(ligne.empty()){
+                continue;
+            }
+
             //J'enlève toutes les guillemets de la string.
             string enleverGuillement = ligne;
+            string guillemetsEnleve;
             for (int i = 0; i < enleverGuillement.size(); i++) {
-                if (enleverGuillement[i] == '"') {
-                    enleverGuillement.erase(enleverGuillement.begin() + i);
+                if (enleverGuillement[i] != '"') {
+                    guillemetsEnleve = guillemetsEnleve + enleverGuillement[i];
                 }
             }
 
             //Maintenant que les guillements sont enlevées, je peux aller chercher les informations pour créer les stations.
-            vecteurStation = string_to_vector(enleverGuillement, delimitateur);
+            vecteurStation = string_to_vector(guillemetsEnleve, delimitateur);
 
             //Pour stop_id
             int idStationaConvertir;
@@ -171,8 +179,8 @@ void DonneesGTFS::ajouterStations(const std::string &p_nomFichier) {
         }
         fichierStations.close();
     }
-    catch (std::logic_error) {
-        cout << "Erreur lors de l'ouverture du fichier!" << endl;
+    catch (std::logic_error &ex) {
+        cout << "Erreur de lecture du fichier" << endl;
     }
 }
 
@@ -217,6 +225,10 @@ void DonneesGTFS::ajouterServices(const std::string &p_nomFichier) {
         //Tant qu'il y a des éléments dans le fichier, on créé des lignes.
         while (!fichierServices.eof()) {
             getline(fichierServices, ligne);
+
+            if(ligne.empty()){
+                continue;
+            }
 
             //Transfert de la ligne dans un vecteur pour aller chercher les infos.
             vecteurService = string_to_vector(ligne, delimitateur);
