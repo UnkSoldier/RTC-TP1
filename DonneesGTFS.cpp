@@ -98,6 +98,7 @@ void DonneesGTFS::ajouterLignes(const std::string &p_nomFichier)
                 m_lignes.insert(std::make_pair(uInt, valeurObjet));
                 m_lignes_par_numero.insert(std::make_pair(numero_ligne,valeurObjet));
             }
+            fichierLigne.close();
         }
     }
     catch (std::logic_error) {
@@ -167,8 +168,8 @@ void DonneesGTFS::ajouterStations(const std::string &p_nomFichier) {
 
             //Insertion de la station dans le conteneur m_stations.
             m_stations.insert(std::make_pair(idStation, stationaAjouter));
-
         }
+        fichierStations.close();
     }
     catch (std::logic_error) {
         cout << "Erreur lors de l'ouverture du fichier!" << endl;
@@ -184,6 +185,13 @@ void DonneesGTFS::ajouterStations(const std::string &p_nomFichier) {
 //! \throws logic_error si tous les arrets de la date et de l'intervalle n'ont pas été ajoutés
 void DonneesGTFS::ajouterTransferts(const std::string &p_nomFichier)
 {
+    fstream ficherTransfert;
+    ficherTransfert.open(p_nomFichier);
+
+    if(!ficherTransfert.is_open()){
+        throw std::logic_error("Erreur ouverture de fichier.");
+    }
+
 
 }
 
@@ -191,8 +199,64 @@ void DonneesGTFS::ajouterTransferts(const std::string &p_nomFichier)
 //! \brief ajoute les services de la date du GTFS (m_date)
 //! \param[in] p_nomFichier: le nom du fichier contenant les services
 //! \throws logic_error si un problème survient avec la lecture du fichier
-void DonneesGTFS::ajouterServices(const std::string &p_nomFichier)
-{
+void DonneesGTFS::ajouterServices(const std::string &p_nomFichier) {
+    try {
+        fstream fichierServices;
+        fichierServices.open(p_nomFichier);
+
+        if (!fichierServices.is_open()) {
+            throw std::logic_error("Erreur d'ouverture du fichier.");
+        }
+        string ligne;
+        char delimitateur = ',';
+        vector<string> vecteurService;
+
+        //Je prends la première ligne pour ne pas prendre l'entête.
+        getline(fichierServices, ligne);
+
+        //Tant qu'il y a des éléments dans le fichier, on créé des lignes.
+        while (!fichierServices.eof()) {
+            getline(fichierServices, ligne);
+
+            //Transfert de la ligne dans un vecteur pour aller chercher les infos.
+            vecteurService = string_to_vector(ligne, delimitateur);
+
+            //Aller chercher les infos du fichier.
+            string idService = vecteurService.at(0);
+            string dateService = vecteurService.at(1);
+
+            //Je dois maintenant prendre l'année, le mois et la date dans la string dateService.
+            string annee, mois, jour;
+            for (int i = 0; i < dateService.size(); i++) {
+                if (i <= 3) {
+                    annee = annee + dateService[i];
+                }
+                else if (i >= 4 && i <= 5) {
+                    mois = mois + dateService[i];
+                }
+                else if (i >= 6 && i <= 7) {
+                    jour = jour + dateService[i];
+                }
+            }
+            //Modification des string en int puis unsigned int.
+            int anneeConv = atoi(annee.c_str());
+            int moisConv = atoi(mois.c_str());
+            int jourConv = atoi(jour.c_str());
+            unsigned int uAnnee = (unsigned int) anneeConv;
+            unsigned int uMois = (unsigned int) moisConv;
+            unsigned int uJour = (unsigned int) jourConv;
+
+            Date *dateLigne = new Date(uAnnee, uMois, uJour);
+            Date dateDeLaLigne = *dateLigne;
+
+            if (m_date == dateDeLaLigne) {
+                m_services.insert(idService);
+            }
+        }
+        fichierServices.close();
+    }
+    catch (exception) {
+    }
 }
 
 //! \brief ajoute les voyages de la date
