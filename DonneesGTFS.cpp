@@ -338,7 +338,7 @@ void DonneesGTFS::ajouterArretsDesVoyagesDeLaDate(const std::string &p_nomFichie
 {
     try {
         fstream fichierArret;
-        fichierArret.open(p_nomFichier);
+        fichierArret.open(p_nomFichier);//tesr
 
         if (!fichierArret.is_open()) {
             throw std::logic_error("Erreur d'ouverture du fichier.");
