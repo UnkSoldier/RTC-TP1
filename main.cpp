@@ -10,7 +10,9 @@ using namespace std;
 
 int main()
 {
-    const std::string chemin_dossier = "RTC-9dec-24fev";
+    //const std::string chemin_dossier = "RTC-9dec-24fev";
+    const std::string chemin_dossier = "C:\\Users\\Antoine\\ClionProjects\\RTC-TP1\\RTC-9dec-24fev";
+
 
     Date today(2016, 12, 15);
     Heure now1(12, 10, 0);
