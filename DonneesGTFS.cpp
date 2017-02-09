@@ -35,8 +35,7 @@ vector<string> DonneesGTFS::string_to_vector(const string &s, char delim)
 //! \brief ajoute les lignes dans l'objet GTFS
 //! \param[in] p_nomFichier: le nom du fichier contenant les lignes
 //! \throws logic_error si un problème survient avec la lecture du fichier
-void DonneesGTFS::ajouterLignes(const std::string &p_nomFichier)
-{
+void DonneesGTFS::ajouterLignes(const std::string &p_nomFichier) {
 
     try {
         //Ouverture du fichier.
@@ -129,6 +128,7 @@ void DonneesGTFS::ajouterStations(const std::string &p_nomFichier) {
 
         //Tant qu'il y a des éléments dans le fichier, on créé des lignes.
         while (!fichierStations.eof()) {
+            ligne.clear();
             getline(fichierStations, ligne);
 
             if(ligne.empty()){
@@ -190,8 +190,7 @@ void DonneesGTFS::ajouterStations(const std::string &p_nomFichier) {
 //! \param[in] p_nomFichier: le nom du fichier contenant les station
 //! \throws logic_error si un problème survient avec la lecture du fichier
 //! \throws logic_error si tous les arrets de la date et de l'intervalle n'ont pas été ajoutés
-void DonneesGTFS::ajouterTransferts(const std::string &p_nomFichier)
-{
+void DonneesGTFS::ajouterTransferts(const std::string &p_nomFichier) {
     fstream ficherTransfert;
     ficherTransfert.open(p_nomFichier);
 
@@ -229,8 +228,17 @@ void DonneesGTFS::ajouterServices(const std::string &p_nomFichier) {
                 throw logic_error("Erreur lors de la lecture du fichier");
             }
 
+            //J'enlève toutes les guillemets de la string.
+            string enleverGuillement = ligne;
+            string guillemetsEnleve;
+            for (int i = 0; i < enleverGuillement.size(); i++) {
+                if (enleverGuillement[i] != '"') {
+                    guillemetsEnleve = guillemetsEnleve + enleverGuillement[i];
+                }
+            }
+
             //Transfert de la ligne dans un vecteur pour aller chercher les infos.
-            vecteurService = string_to_vector(ligne, delimitateur);
+            vecteurService = string_to_vector(guillemetsEnleve, delimitateur);
 
             //Aller chercher les infos du fichier.
             string idService = vecteurService.at(0);
@@ -285,7 +293,6 @@ void DonneesGTFS::ajouterVoyagesDeLaDate(const std::string &p_nomFichier) {
         string ligne;
         char delimitateur = ',';
         vector<string> vecteurVoyage;
-        vector<string>::iterator iter;
 
         //Je prends la première ligne pour ne pas prendre l'entête.
         getline(fichierVoyage, ligne);
@@ -298,7 +305,15 @@ void DonneesGTFS::ajouterVoyagesDeLaDate(const std::string &p_nomFichier) {
                 throw logic_error("Erreur lors de la lecture du fichier");
             }
 
-            vecteurVoyage = string_to_vector(ligne, delimitateur);
+            string enleverGuillement = ligne;
+            string guillemetsEnleve;
+            for (int i = 0; i < enleverGuillement.size(); i++) {
+                if (enleverGuillement[i] != '"') {
+                    guillemetsEnleve = guillemetsEnleve + enleverGuillement[i];
+                }
+            }
+
+            vecteurVoyage = string_to_vector(guillemetsEnleve, delimitateur);
             //Aller chercher le trip_id dans le vecteur, il se trouve à la 2e position dans le vecteur.
             string trip_id = vecteurVoyage.at(2);
 
@@ -317,11 +332,10 @@ void DonneesGTFS::ajouterVoyagesDeLaDate(const std::string &p_nomFichier) {
             Voyage *voyageACreer = new Voyage(trip_id, IDroute, service_id, trip_headsign);
             Voyage voyageAInserer = *voyageACreer;
 
-            unordered_set<std::string>::iterator servicePresent = m_services.find(service_id);
-            if(servicePresent == m_services.end()){
+            auto servicePresent = m_services.find(service_id);
+            if(servicePresent != m_services.end()){
+                m_voyages.insert(std::make_pair(trip_id, voyageAInserer));
             }
-            m_voyages.insert(std::make_pair(trip_id, voyageAInserer));
-
         }
         fichierVoyage.close();
 
@@ -346,7 +360,6 @@ void DonneesGTFS::ajouterArretsDesVoyagesDeLaDate(const std::string &p_nomFichie
         string ligne;
         char delimitateur = ',';
         vector<string> vecteurArret;
-        vector<string>::iterator iter;
 
         //Je prends la première ligne pour ne pas prendre l'entête.
         getline(fichierArret, ligne);
@@ -359,14 +372,22 @@ void DonneesGTFS::ajouterArretsDesVoyagesDeLaDate(const std::string &p_nomFichie
                 throw logic_error("Erreur lors de la lecture du fichier");
             }
 
-            vecteurArret = string_to_vector(ligne, delimitateur);
+            string enleverGuillement = ligne;
+            string guillemetsEnleve;
+            for (int i = 0; i < enleverGuillement.size(); i++) {
+                if (enleverGuillement[i] != '"') {
+                    guillemetsEnleve = guillemetsEnleve + enleverGuillement[i];
+                }
+            }
 
-            //Aller chercher stop_id.
+            vecteurArret = string_to_vector(guillemetsEnleve, delimitateur);
+
+            //Aller chercher stop_id (m_station_id).
             string stop_id_string = vecteurArret.at(3);
             int int_stop_id = atoi(stop_id_string.c_str());
-            unsigned int m_station_id = (unsigned int) int_stop_id;
+            unsigned int station_id = (unsigned int) int_stop_id;
 
-            //aller chercher l'arrival time.
+            //aller chercher l'heure d'arrivée (m_heure_arrivee).
             string date_arrivee = vecteurArret.at(1);
             vector<string> heureAConvertir = string_to_vector(date_arrivee, ':');
 
@@ -382,10 +403,10 @@ void DonneesGTFS::ajouterArretsDesVoyagesDeLaDate(const std::string &p_nomFichie
             unsigned int secondes = (unsigned int) intSecondes;
 
             Heure *objHeureArrivee = new Heure(heure, minutes, secondes);
-            Heure m_heure_arrivee = *objHeureArrivee;
+            Heure heure_arrivee = *objHeureArrivee;
 
-            //aller chercher l'heure de départ.
-            string date_depart = vecteurArret.at(1);
+            //aller chercher l'heure de départ (m_heure_depart))
+            string date_depart = vecteurArret.at(2);
             vector<string> heureDepartAConvertir = string_to_vector(date_arrivee, ':');
 
             string strDepartHeure = heureDepartAConvertir.at(0);
@@ -400,20 +421,35 @@ void DonneesGTFS::ajouterArretsDesVoyagesDeLaDate(const std::string &p_nomFichie
             unsigned int departSecondes = (unsigned int) intDepartSecondes;
 
             Heure *objHeureDepart = new Heure(departHeure, departMinutes, departSecondes);
-            Heure m_heure_depart = *objHeureArrivee;
+            Heure heure_depart = *objHeureArrivee;
 
-            //Aller chercher stop_sequence.
+            //Aller chercher stop_sequence (m_numero_sequence).
             string stringStopSequence = vecteurArret.at(4);
             int intStopSequence = atoi(stringStopSequence.c_str());
-            unsigned int m_numero_sequence = (unsigned int) intStopSequence;
+            unsigned int numero_sequence = (unsigned int) intStopSequence;
 
-            string m_voyage_id = vecteurArret.at(2);
+            //Aller chercher le voyage_id(trip_id), il est situé à la position 0.
+            string voyage_id = vecteurArret.at(0);
 
-            if(m_heure_depart > m_now1 && m_heure_arrivee < m_now1 &&
-                    m_heure_depart < m_now2 && m_heure_arrivee < m_now2) {
-                m_voyages[m_voyage_id].ajouterArret(Arret::Ptr(new Arret(m_station_id, m_heure_arrivee, m_heure_depart, m_numero_sequence, m_voyage_id)));
+            //Ensuite, je vérifie que le voyage_id est bel et bien présent.
+            auto voyagePresent = m_voyages.find(voyage_id);
+            if(voyagePresent != m_voyages.end()){
+                //Création d'un objet sur un heap pour tous les arrêts entre m_now1 et m_now2.
+                if(heure_depart >= m_now1 && heure_arrivee <= m_now1 &&
+                   heure_depart <= m_now2 && heure_arrivee <= m_now2) {
+                    m_voyages[voyage_id].ajouterArret(Arret::Ptr(new Arret(station_id, heure_arrivee, heure_depart, numero_sequence, voyage_id)));
                 }
+            }
+        }
+        //Je ferme le fichier.
+        fichierArret.close();
 
+
+        for(auto iter= m_voyages.begin(); iter != m_voyages.end(); ++iter){
+            cout << m_nbArrets[iter] << endl;
+            /*if(m_voyages[getNbArrets()] == 0){
+                m_voyages.erase(iter);
+            }*/
         }
     }
     catch (exception){}
