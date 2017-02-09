@@ -444,12 +444,12 @@ void DonneesGTFS::ajouterArretsDesVoyagesDeLaDate(const std::string &p_nomFichie
         //Je ferme le fichier.
         fichierArret.close();
 
-
+        //Je supprimes les voyages qui ne contiennent pas d'arrêts.
         for(auto iter= m_voyages.begin(); iter != m_voyages.end(); ++iter){
-            cout << m_nbArrets[iter] << endl;
-            /*if(m_voyages[getNbArrets()] == 0){
+            if((*iter).second.getNbArrets() == 0){
+                //je supprimes le voyage.
                 m_voyages.erase(iter);
-            }*/
+            }
         }
     }
     catch (exception){}
