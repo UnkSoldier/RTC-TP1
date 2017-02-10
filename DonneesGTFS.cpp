@@ -436,8 +436,8 @@ void DonneesGTFS::ajouterArretsDesVoyagesDeLaDate(const std::string &p_nomFichie
 
 
                 //Création d'un objet sur un heap pour tous les arrêts entre m_now1 et m_now2.
-                if((*heure_depart >= m_now1 && *heure_depart <= m_now2) &&
-                            (*heure_arrivee > m_now1 && *heure_arrivee <= m_now2)) {
+                if((*heure_depart >= getTempsDebut() && *heure_depart <= getTempsFin()) &&
+                            (*heure_arrivee > getTempsDebut() && *heure_arrivee <= getTempsFin())) {
                     m_voyages[voyage_id].ajouterArret(Arret::Ptr(new Arret(station_id, *heure_arrivee, *heure_depart, numero_sequence, voyage_id)));
                 }
 
