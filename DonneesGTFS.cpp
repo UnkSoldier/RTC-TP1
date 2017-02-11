@@ -196,8 +196,39 @@ void DonneesGTFS::ajouterTransferts(const std::string &p_nomFichier) {
     if(!ficherTransfert.is_open()){
         throw std::logic_error("Erreur ouverture de fichier.");
     }
+    string ligne;
+    char delimitateur = ',';
+    vector<string> vecteurTransfert;
 
+    //Je prends la première ligne pour ne pas prendre l'entête.
+    getline(ficherTransfert, ligne);
 
+    //Tant qu'il y a des éléments dans le fichier, on créé des lignes.
+    while(getline(ficherTransfert,ligne))
+    {
+        if(ligne.empty()){
+            throw logic_error("Erreur lors de la lecture du fichier");
+        }
+
+        vecteurTransfert = string_to_vector(ligne, ',');
+        int from_stop_id = atoi(vecteurTransfert.at(0).c_str());
+        int to_stop_id = atoi(vecteurTransfert.at(1).c_str());
+        int min_transfer_time = atoi(vecteurTransfert.at(3).c_str());
+        unsigned int uFrom_stop_id = (unsigned int) from_stop_id;
+        unsigned int uTo_stop_id = (unsigned int) to_stop_id;
+        unsigned int uMin_transfer_time = (unsigned int) min_transfer_time;
+
+        if(from_stop_id != to_stop_id)
+        {
+            auto stationProvenance = m_stations.find((unsigned int) from_stop_id);
+            auto stationDestination = m_stations.find((unsigned int) to_stop_id);
+            if(stationProvenance != m_stations.end() && stationDestination != m_stations.end())
+            {
+                m_transferts.push_back(make_tuple(uFrom_stop_id, uTo_stop_id, uMin_transfer_time));
+            }
+        }
+
+    }
 }
 
 
@@ -430,45 +461,60 @@ void DonneesGTFS::ajouterArretsDesVoyagesDeLaDate(const std::string &p_nomFichie
             string voyage_id = vecteurArret.at(0);
 
             //Ensuite, je vérifie que le voyage_id est bel et bien présent.
-
-
             auto voyagePresent = m_voyages.find(voyage_id);
-            unsigned int ligneVoyage = (*voyagePresent).second.getLigne();
-            if(voyagePresent != m_voyages.end()) {
+            if (voyagePresent != m_voyages.end()) {
 
                 //Création d'un objet pour tous les arrêts entre m_now1 et m_now2.
                 if ((*heure_depart > getTempsDebut() && *heure_depart < getTempsFin()) &&
                     (*heure_arrivee > getTempsDebut() && *heure_arrivee < getTempsFin()) ||
-                        (*heure_depart == getTempsDebut())){
+                    (*heure_depart == getTempsDebut())) {
 
                     m_voyages[voyage_id].ajouterArret(Arret::Ptr(
                             new Arret(station_id, *heure_arrivee, *heure_depart, numero_sequence, voyage_id)));
-                    }
-                 }
-            }
-
-            //Je ferme le fichier.
-            fichierArret.close();
-
-            //Je supprime les voyages qui ne contiennent pas d'arrêts.
-            for (auto iter = m_voyages.begin(); iter != m_voyages.end();) {
-                if ((*iter).second.getNbArrets() == 0) {
-                    //je supprimes le voyage.
-                    m_voyages.erase(iter++);
-                }
-                else {
-                    ++iter;
                 }
             }
+        }
+
+        //Je ferme le fichier.
+        fichierArret.close();
+
+        //Je supprime les voyages qui ne contiennent pas d'arrêts.
+        for (auto iter = m_voyages.begin(); iter != m_voyages.end();) {
+            if ((*iter).second.getNbArrets() == 0) {
+                //je supprimes le voyage.
+                m_voyages.erase(iter++);
+            }
+            else {
+                ++iter;
+            }
+        }
         //J'ajoute les arrêts de m_voyages dans la station de m_stations,
 
-        for(auto iter = m_voyages.begin(); iter != m_voyages.end(); ++iter){
-            if((*iter).second.getNbArrets() > 0){
-                //Si le voyage a plus d'un arrêt, je recherche le stop_id de l'arret.
+        for (auto iter = m_voyages.begin(); iter != m_voyages.end(); ++iter) {
+            if ((*iter).second.getNbArrets() > 0) {
 
+                //Si le voyage a plus d'un arrêt, je recherche le stop_id de l'arret.
+                for (auto &a: (iter->second).getArrets()) {
+                    auto station = m_stations.find((*a).getStationId());
+                    if (station != m_stations.end()) {
+                        //Si le station_id d'arrêt et de Station sont identiques, j'ajoute l'arrêt dans m_station.
+                        if ((*station).second.getId() == (*a).getStationId()) {
+                            m_stations[(*a).getStationId()].addArret(Arret::Ptr(
+                                    new Arret(*a)));
+                            m_nbArrets++;
+                        }
+                    }
+                }
             }
         }
+        //je supprime mes station qui n'ont pas d'arrêt.
+        for (auto station = m_stations.begin(); station != m_stations.end();){
+            if((*station).second.getNbArrets() == 0){
+                m_stations.erase(station++);
+            }
+            ++station;
         }
+    }
     catch (exception){}
 }
 
