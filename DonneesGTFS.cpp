@@ -94,11 +94,10 @@ void DonneesGTFS::ajouterLignes(const std::string &p_nomFichier) {
 
                 //Création de l'objet Ligne.
                 Ligne *objetLigne = new Ligne(uInt, numero_ligne, description_route, categorie_ligne);
-                Ligne valeurObjet = *objetLigne;
 
                 //J'ajoute ce nouvel objet dans les maps m_ligne et m_ligne_par_numero.
-                m_lignes.insert(std::make_pair(uInt, valeurObjet));
-                m_lignes_par_numero.insert(std::make_pair(numero_ligne,valeurObjet));
+                m_lignes.insert(std::make_pair(uInt, *objetLigne));
+                m_lignes_par_numero.insert(std::make_pair(numero_ligne,*objetLigne));
             }
             fichierLigne.close();
         }
@@ -351,7 +350,7 @@ void DonneesGTFS::ajouterVoyagesDeLaDate(const std::string &p_nomFichier) {
 void DonneesGTFS::ajouterArretsDesVoyagesDeLaDate(const std::string &p_nomFichier)
 {
     try {
-        fstream fichierArret;
+        ifstream fichierArret;
         fichierArret.open(p_nomFichier);
 
         if (!fichierArret.is_open()) {
@@ -431,28 +430,27 @@ void DonneesGTFS::ajouterArretsDesVoyagesDeLaDate(const std::string &p_nomFichie
             string voyage_id = vecteurArret.at(0);
 
             //Ensuite, je vérifie que le voyage_id est bel et bien présent.
+
+
             auto voyagePresent = m_voyages.find(voyage_id);
+            unsigned int ligneVoyage = (*voyagePresent).second.getLigne();
             if(voyagePresent != m_voyages.end()) {
 
+                //Création d'un objet pour tous les arrêts entre m_now1 et m_now2.
+                if ((*heure_depart > getTempsDebut() && *heure_depart < getTempsFin()) &&
+                    (*heure_arrivee > getTempsDebut() && *heure_arrivee < getTempsFin()) ||
+                        (*heure_depart == getTempsDebut())){
 
-                //Création d'un objet sur un heap pour tous les arrêts entre m_now1 et m_now2.
-                if((*heure_depart >= getTempsDebut() && *heure_depart <= getTempsFin()) &&
-                            (*heure_arrivee > getTempsDebut() && *heure_arrivee <= getTempsFin())) {
-                    m_voyages[voyage_id].ajouterArret(Arret::Ptr(new Arret(station_id, *heure_arrivee, *heure_depart, numero_sequence, voyage_id)));
-                }
-
-               /* if((*voyagePresent).second.getServiceId().compare(voyage_id) ==0 &&
-                            *heure_depart > m_now1 && *heure_arrivee < m_now2
-                            (*heure_depart == m_now1 && *heure_arrivee == m_now2)){
-                        m_voyages[voyage_id].ajouterArret(Arret::Ptr(new Arret(station_id, *heure_arrivee, *heure_depart, numero_sequence, voyage_id)));
-                    }*/
-                }
-        }
+                    m_voyages[voyage_id].ajouterArret(Arret::Ptr(
+                            new Arret(station_id, *heure_arrivee, *heure_depart, numero_sequence, voyage_id)));
+                    }
+                 }
+            }
 
             //Je ferme le fichier.
             fichierArret.close();
 
-            //Je supprimes les voyages qui ne contiennent pas d'arrêts.
+            //Je supprime les voyages qui ne contiennent pas d'arrêts.
             for (auto iter = m_voyages.begin(); iter != m_voyages.end();) {
                 if ((*iter).second.getNbArrets() == 0) {
                     //je supprimes le voyage.
@@ -462,6 +460,14 @@ void DonneesGTFS::ajouterArretsDesVoyagesDeLaDate(const std::string &p_nomFichie
                     ++iter;
                 }
             }
+        //J'ajoute les arrêts de m_voyages dans la station de m_stations,
+
+        for(auto iter = m_voyages.begin(); iter != m_voyages.end(); ++iter){
+            if((*iter).second.getNbArrets() > 0){
+                //Si le voyage a plus d'un arrêt, je recherche le stop_id de l'arret.
+
+            }
+        }
         }
     catch (exception){}
 }
