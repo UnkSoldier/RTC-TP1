@@ -166,15 +166,13 @@ void DonneesGTFS::ajouterStations(const std::string &p_nomFichier) {
             double longitude = atof(string_longitude.c_str());
 
             //Création de l'object coordonnées afin de créer l'objet station.
-            Coordonnees *ptrCoordStation = new Coordonnees(latitude,longitude);
-            Coordonnees coordStation = *ptrCoordStation;
+            Coordonnees *CoordStation = new Coordonnees(latitude,longitude);
 
             //Création de l'objet station.
-            Station *nouvelleStation = new Station(idStation, nomStation, descStation, coordStation);
-            Station stationaAjouter = *nouvelleStation;
+            Station *nouvelleStation = new Station(idStation, nomStation, descStation, *CoordStation);
 
             //Insertion de la station dans le conteneur m_stations.
-            m_stations.insert(std::make_pair(idStation, stationaAjouter));
+            m_stations.insert(std::make_pair(idStation, *nouvelleStation));
         }
         fichierStations.close();
     }
@@ -227,7 +225,6 @@ void DonneesGTFS::ajouterTransferts(const std::string &p_nomFichier) {
                 m_transferts.push_back(make_tuple(uFrom_stop_id, uTo_stop_id, uMin_transfer_time));
             }
         }
-
     }
 }
 
@@ -387,6 +384,7 @@ void DonneesGTFS::ajouterArretsDesVoyagesDeLaDate(const std::string &p_nomFichie
         if (!fichierArret.is_open()) {
             throw std::logic_error("Erreur d'ouverture du fichier.");
         }
+
         string ligne;
         char delimitateur = ',';
         vector<string> vecteurArret;
@@ -394,87 +392,68 @@ void DonneesGTFS::ajouterArretsDesVoyagesDeLaDate(const std::string &p_nomFichie
         //Je prends la première ligne pour ne pas prendre l'entête.
         getline(fichierArret, ligne);
 
-        //Tant qu'il y a des éléments dans le fichier, on créé des lignes.
-        while (!fichierArret.eof()) {
-            getline(fichierArret, ligne);
+        while(getline(fichierArret, ligne)) {
+            if (!ligne.empty()) {
+                vecteurArret = string_to_vector(ligne, ',');
 
-            if (ligne.empty()) {
-                //throw logic_error("Erreur lors de la lecture du fichier");
-                continue;
-            }
+                //Aller chercher le stop_id, ensuite je vérifie si cet arrêt est présent dans m_station.
+                string voyage_id = vecteurArret.at(0);
+                auto voyagePresent = m_voyages.find(voyage_id);
+                if (voyagePresent != m_voyages.end()) {
 
-            string enleverGuillement = ligne;
-            string guillemetsEnleve;
-            for (int i = 0; i < enleverGuillement.size(); i++) {
-                if (enleverGuillement[i] != '"') {
-                    guillemetsEnleve = guillemetsEnleve + enleverGuillement[i];
-                }
-            }
+                    //Aller chercher stop_id (m_station_id).
+                    string stop_id_string = vecteurArret.at(3);
+                    int int_stop_id = atoi(stop_id_string.c_str());
 
-            vecteurArret = string_to_vector(guillemetsEnleve, delimitateur);
+                    //aller chercher l'heure d'arrivée (m_heure_arrivee).
+                    string date_arrivee = vecteurArret.at(1);
+                    vector<string> heureAConvertir = string_to_vector(date_arrivee, ':');
 
-            //Aller chercher stop_id (m_station_id).
-            string stop_id_string = vecteurArret.at(3);
-            int int_stop_id = atoi(stop_id_string.c_str());
-            unsigned int station_id = (unsigned int) int_stop_id;
+                    //Je vais chercher les heures, minutes et secondes puis je les convertie
+                    string strHeure = heureAConvertir.at(0);
+                    string strMinutes = heureAConvertir.at(1);
+                    string strSecondes = heureAConvertir.at(2);
+                    int intHeure, intMinutes, intSecondes;
+                    intHeure = atoi(strHeure.c_str());
+                    intMinutes = atoi(strMinutes.c_str());
+                    intSecondes = atoi(strSecondes.c_str());
+                    Heure *heure_arrivee = new Heure((unsigned int) intHeure, (unsigned int) intMinutes,
+                                                     (unsigned int) intSecondes);
 
-            //aller chercher l'heure d'arrivée (m_heure_arrivee).
-            string date_arrivee = vecteurArret.at(1);
-            vector<string> heureAConvertir = string_to_vector(date_arrivee, ':');
+                    //Je répête pour l'heure de départ.
+                    string date_depart = vecteurArret.at(2);
+                    vector<string> heureDepartAConvertir = string_to_vector(date_depart, ':');
 
-            string strHeure = heureAConvertir.at(0);
-            string strMinutes = heureAConvertir.at(1);
-            string strSecondes = heureAConvertir.at(2);
-            int intHeure, intMinutes, intSecondes;
-            intHeure = atoi(strHeure.c_str());
-            intMinutes = atoi(strMinutes.c_str());
-            intSecondes = atoi(strSecondes.c_str());
-            unsigned int heure = (unsigned int) intHeure;
-            unsigned int minutes = (unsigned int) intMinutes;
-            unsigned int secondes = (unsigned int) intSecondes;
+                    string strDepartHeure = heureDepartAConvertir.at(0);
+                    string strDepartMinutes = heureDepartAConvertir.at(1);
+                    string strDepartSecondes = heureDepartAConvertir.at(2);
+                    int intDepartHeure, intDepartMinutes, intDepartSecondes;
+                    intDepartHeure = atoi(strDepartHeure.c_str());
+                    intDepartMinutes = atoi(strDepartMinutes.c_str());
+                    intDepartSecondes = atoi(strDepartSecondes.c_str());
+                    Heure *heure_depart = new Heure((unsigned int) intDepartHeure, (unsigned int) intDepartMinutes,
+                                                    (unsigned int) intDepartSecondes);
 
-            Heure *heure_arrivee = new Heure(heure, minutes, secondes);
+                    //Je vérifie que l'heure de départ et d'arrivée concordent avec m_now1 et m_now2.
+                    if ((*heure_depart > getTempsDebut() && *heure_depart < getTempsFin()) &&
+                        (*heure_arrivee > getTempsDebut() && *heure_arrivee < getTempsFin()) ||
+                        (*heure_depart == getTempsDebut())) {
 
-            //aller chercher l'heure de départ (m_heure_depart))
-            string date_depart = vecteurArret.at(2);
-            vector<string> heureDepartAConvertir = string_to_vector(date_depart, ':');
+                        //Je vais chercher stop_sequence (m_numero_sequence).
+                        string stringStopSequence = vecteurArret.at(4);
+                        int numero_sequence = atoi(stringStopSequence.c_str());
 
-            string strDepartHeure = heureDepartAConvertir.at(0);
-            string strDepartMinutes = heureDepartAConvertir.at(1);
-            string strDepartSecondes = heureDepartAConvertir.at(2);
-            int intDepartHeure, intDepartMinutes, intDepartSecondes;
-            intDepartHeure = atoi(strDepartHeure.c_str());
-            intDepartMinutes = atoi(strDepartMinutes.c_str());
-            intDepartSecondes = atoi(strDepartSecondes.c_str());
-            unsigned int departHeure = (unsigned int) intDepartHeure;
-            unsigned int departMinutes = (unsigned int) intDepartMinutes;
-            unsigned int departSecondes = (unsigned int) intDepartSecondes;
+                        //Je vais chercher station_id (m_station_id).
+                        string stop_id_string = vecteurArret.at(3);
+                        int station_id = atoi(stop_id_string.c_str());
 
-            Heure *heure_depart = new Heure(departHeure, departMinutes, departSecondes);
-
-            //Aller chercher stop_sequence (m_numero_sequence).
-            string stringStopSequence = vecteurArret.at(4);
-            int intStopSequence = atoi(stringStopSequence.c_str());
-            unsigned int numero_sequence = (unsigned int) intStopSequence;
-
-            //Aller chercher le voyage_id(trip_id), il est situé à la position 0.
-            string voyage_id = vecteurArret.at(0);
-
-            //Ensuite, je vérifie que le voyage_id est bel et bien présent.
-            auto voyagePresent = m_voyages.find(voyage_id);
-            if (voyagePresent != m_voyages.end()) {
-
-                //Création d'un objet pour tous les arrêts entre m_now1 et m_now2.
-                if ((*heure_depart > getTempsDebut() && *heure_depart < getTempsFin()) &&
-                    (*heure_arrivee > getTempsDebut() && *heure_arrivee < getTempsFin()) ||
-                    (*heure_depart == getTempsDebut())) {
-
-                    m_voyages[voyage_id].ajouterArret(Arret::Ptr(
-                            new Arret(station_id, *heure_arrivee, *heure_depart, numero_sequence, voyage_id)));
+                        m_voyages[voyage_id].ajouterArret(Arret::Ptr(
+                                new Arret((unsigned int) station_id, *heure_arrivee, *heure_depart,
+                                          (unsigned int) numero_sequence, voyage_id)));
+                    }
                 }
             }
         }
-
         //Je ferme le fichier.
         fichierArret.close();
 
