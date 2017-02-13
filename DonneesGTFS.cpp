@@ -433,8 +433,7 @@ void DonneesGTFS::ajouterArretsDesVoyagesDeLaDate(const std::string &p_nomFichie
                     if (serviceDeLaJournee != m_services.end()) {
 
                         //Je vérifie que l'heure de départ et d'arrivée concordent avec m_now1 et m_now2.
-                        if ((*heure_depart > getTempsDebut() && *heure_depart < getTempsFin()) &&
-                            (*heure_arrivee > getTempsDebut() && *heure_arrivee < getTempsFin()) ||
+                        if ((*heure_depart > getTempsDebut() && *heure_arrivee < getTempsFin()) ||
                             (*heure_depart == getTempsDebut())) {
 
                             //Je vais chercher stop_sequence (m_numero_sequence).
