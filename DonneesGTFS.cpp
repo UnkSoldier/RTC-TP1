@@ -126,12 +126,11 @@ void DonneesGTFS::ajouterStations(const std::string &p_nomFichier) {
         getline(fichierStations, ligne);
 
         //Tant qu'il y a des éléments dans le fichier, on créé des lignes.
-        while (!fichierStations.eof()) {
-            ligne.clear();
-            getline(fichierStations, ligne);
+        while (getline(fichierStations, ligne)) {
 
             if(ligne.empty()){
-                throw logic_error("Erreur lors de la lecture du fichier");
+                //throw logic_error("Erreur lors de la lecture du fichier");
+                continue;
             }
 
             //J'enlève toutes les guillemets de la string.
@@ -147,11 +146,11 @@ void DonneesGTFS::ajouterStations(const std::string &p_nomFichier) {
             vecteurStation = string_to_vector(guillemetsEnleve, delimitateur);
 
             //Pour stop_id
-            int idStationaConvertir;
+            int stop_id;
             string stringAConvertir;
             stringAConvertir = vecteurStation.at(0);
-            idStationaConvertir = atoi(stringAConvertir.c_str());
-            unsigned int idStation = (unsigned int)idStationaConvertir;
+            stop_id = atoi(stringAConvertir.c_str());
+
 
             //Pour aller chercher le nom de la station (m_nom)
             string nomStation = vecteurStation.at(1);
@@ -169,10 +168,11 @@ void DonneesGTFS::ajouterStations(const std::string &p_nomFichier) {
             Coordonnees *CoordStation = new Coordonnees(latitude,longitude);
 
             //Création de l'objet station.
-            Station *nouvelleStation = new Station(idStation, nomStation, descStation, *CoordStation);
+            Station *nouvelleStation = new Station((unsigned int) stop_id, nomStation, descStation, *CoordStation);
 
             //Insertion de la station dans le conteneur m_stations.
-            m_stations.insert(std::make_pair(idStation, *nouvelleStation));
+            m_stations.insert(std::make_pair((unsigned int) stop_id, *nouvelleStation));
+
         }
         fichierStations.close();
     }
@@ -359,7 +359,7 @@ void DonneesGTFS::ajouterVoyagesDeLaDate(const std::string &p_nomFichier) {
 
             auto servicePresent = m_services.find(service_id);
             if(servicePresent != m_services.end()){
-                //Création de l'objet Voyage.
+                //Création de l'objet Voyage et je l'assigne à m_voyage.
                 Voyage *voyageACreer = new Voyage(trip_id, IDroute, service_id, trip_headsign);
                 m_voyages.insert(std::make_pair(trip_id, *voyageACreer));
             }
@@ -386,7 +386,6 @@ void DonneesGTFS::ajouterArretsDesVoyagesDeLaDate(const std::string &p_nomFichie
         }
 
         string ligne;
-        char delimitateur = ',';
         vector<string> vecteurArret;
 
         //Je prends la première ligne pour ne pas prendre l'entête.
@@ -400,10 +399,6 @@ void DonneesGTFS::ajouterArretsDesVoyagesDeLaDate(const std::string &p_nomFichie
                 string voyage_id = vecteurArret.at(0);
                 auto voyagePresent = m_voyages.find(voyage_id);
                 if (voyagePresent != m_voyages.end()) {
-
-                    //Aller chercher stop_id (m_station_id).
-                    string stop_id_string = vecteurArret.at(3);
-                    int int_stop_id = atoi(stop_id_string.c_str());
 
                     //aller chercher l'heure d'arrivée (m_heure_arrivee).
                     string date_arrivee = vecteurArret.at(1);
@@ -434,22 +429,26 @@ void DonneesGTFS::ajouterArretsDesVoyagesDeLaDate(const std::string &p_nomFichie
                     Heure *heure_depart = new Heure((unsigned int) intDepartHeure, (unsigned int) intDepartMinutes,
                                                     (unsigned int) intDepartSecondes);
 
-                    //Je vérifie que l'heure de départ et d'arrivée concordent avec m_now1 et m_now2.
-                    if ((*heure_depart > getTempsDebut() && *heure_depart < getTempsFin()) &&
-                        (*heure_arrivee > getTempsDebut() && *heure_arrivee < getTempsFin()) ||
-                        (*heure_depart == getTempsDebut())) {
+                    auto serviceDeLaJournee = m_services.find((*voyagePresent).second.getServiceId());
+                    if (serviceDeLaJournee != m_services.end()) {
 
-                        //Je vais chercher stop_sequence (m_numero_sequence).
-                        string stringStopSequence = vecteurArret.at(4);
-                        int numero_sequence = atoi(stringStopSequence.c_str());
+                        //Je vérifie que l'heure de départ et d'arrivée concordent avec m_now1 et m_now2.
+                        if ((*heure_depart > getTempsDebut() && *heure_depart < getTempsFin()) &&
+                            (*heure_arrivee > getTempsDebut() && *heure_arrivee < getTempsFin()) ||
+                            (*heure_depart == getTempsDebut())) {
 
-                        //Je vais chercher station_id (m_station_id).
-                        string stop_id_string = vecteurArret.at(3);
-                        int station_id = atoi(stop_id_string.c_str());
+                            //Je vais chercher stop_sequence (m_numero_sequence).
+                            string stringStopSequence = vecteurArret.at(4);
+                            int numero_sequence = atoi(stringStopSequence.c_str());
 
-                        m_voyages[voyage_id].ajouterArret(Arret::Ptr(
-                                new Arret((unsigned int) station_id, *heure_arrivee, *heure_depart,
-                                          (unsigned int) numero_sequence, voyage_id)));
+                            //Je vais chercher station_id (m_station_id).
+                            string stop_id_string = vecteurArret.at(3);
+                            int station_id = atoi(stop_id_string.c_str());
+
+                            m_voyages[voyage_id].ajouterArret(Arret::Ptr(
+                                    new Arret((unsigned int) station_id, *heure_arrivee, *heure_depart,
+                                              (unsigned int) numero_sequence, voyage_id)));
+                        }
                     }
                 }
             }
@@ -468,7 +467,6 @@ void DonneesGTFS::ajouterArretsDesVoyagesDeLaDate(const std::string &p_nomFichie
             }
         }
         //J'ajoute les arrêts de m_voyages dans la station de m_stations,
-
         for (auto iter = m_voyages.begin(); iter != m_voyages.end(); ++iter) {
             if ((*iter).second.getNbArrets() > 0) {
 
@@ -491,7 +489,9 @@ void DonneesGTFS::ajouterArretsDesVoyagesDeLaDate(const std::string &p_nomFichie
             if((*station).second.getNbArrets() == 0){
                 m_stations.erase(station++);
             }
-            ++station;
+            else {
+                ++station;
+            }
         }
     }
     catch (exception){}
